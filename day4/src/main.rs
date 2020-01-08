@@ -1,8 +1,33 @@
+#[macro_use()]
+extern crate regex;
+use regex::Regex;
 use std::f64;
+use std::process::Command;
+use std::process::Output;
 use std::str;
 
 fn main() {
-    md5(&"Jake Carrington");
+    let result = part_1(&"abcdef");
+}
+
+fn part_1(secret_key: &str) -> u32 {
+    let mut found = false;
+    let mut num = 0;
+    let mut final_result: &str = "";
+    while !found {
+        let result = md5sh(&format!("{}{}", secret_key, num));
+        println!("{}", result);
+        if &result[..5] == "00000" {
+            final_result = &result;
+            found = true;
+        }
+        if num % 1 == 0 {
+            println!("{}", num);
+        }
+        num += 1;
+    }
+
+    return num;
 }
 
 fn chunk(message: &str, size: usize) -> Vec<&str> {
@@ -16,6 +41,18 @@ fn chunk(message: &str, size: usize) -> Vec<&str> {
 
 fn leftrotate(x: usize, c: usize) -> usize {
     ((x << c) | (x >> (32 - c)))
+}
+
+fn md5sh(message: &str) -> String {
+    let cmd = Command::new("md5").args(&["-s", message]).output().unwrap();
+    if cmd.status.success() {
+        let result: String = String::from_utf8_lossy(&cmd.stdout).into_owned();
+        let regex = Regex::new(r"[a-z0-9]+").unwrap();
+        let matches: Vec<&str> = regex.find_iter(&result).map(|m| m.as_str()).collect();
+        let len = matches.len();
+        return String::from(matches[len - 1]);
+    }
+    String::from("")
 }
 
 fn md5(message: &str) {
@@ -117,7 +154,8 @@ mod md5 {
     use super::*;
 
     #[test]
-    fn run_md5() {
-        md5(&"Jake");
+    fn example_1() {
+        let result = part_1(&"abcdef");
+        println!("{}", result);
     }
 }
