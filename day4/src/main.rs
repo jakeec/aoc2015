@@ -1,13 +1,13 @@
 #[macro_use()]
-extern crate regex;
-use regex::Regex;
+extern crate crypto;
+use crypto::digest::Digest;
+use crypto::md5::Md5;
 use std::f64;
-use std::process::Command;
-use std::process::Output;
 use std::str;
 
 fn main() {
     let result = part_1(&"abcdef");
+    println!("{}", result);
 }
 
 fn part_1(secret_key: &str) -> u32 {
@@ -15,19 +15,37 @@ fn part_1(secret_key: &str) -> u32 {
     let mut num = 0;
     let mut final_result: &str = "";
     while !found {
-        let result = md5sh(&format!("{}{}", secret_key, num));
-        println!("{}", result);
+        let result = md5crate(&format!("{}{}", secret_key, num));
         if &result[..5] == "00000" {
             final_result = &result;
             found = true;
         }
-        if num % 1 == 0 {
+        if num % 10000 == 0 {
             println!("{}", num);
         }
         num += 1;
     }
 
-    return num;
+    return num - 1;
+}
+
+fn part_2(secret_key: &str) -> u32 {
+    let mut found = false;
+    let mut num = 0;
+    let mut final_result: &str = "";
+    while !found {
+        let result = md5crate(&format!("{}{}", secret_key, num));
+        if &result[..6] == "000000" {
+            final_result = &result;
+            found = true;
+        }
+        if num % 10000 == 0 {
+            println!("{}", num);
+        }
+        num += 1;
+    }
+
+    return num - 1;
 }
 
 fn chunk(message: &str, size: usize) -> Vec<&str> {
@@ -43,16 +61,11 @@ fn leftrotate(x: usize, c: usize) -> usize {
     ((x << c) | (x >> (32 - c)))
 }
 
-fn md5sh(message: &str) -> String {
-    let cmd = Command::new("md5").args(&["-s", message]).output().unwrap();
-    if cmd.status.success() {
-        let result: String = String::from_utf8_lossy(&cmd.stdout).into_owned();
-        let regex = Regex::new(r"[a-z0-9]+").unwrap();
-        let matches: Vec<&str> = regex.find_iter(&result).map(|m| m.as_str()).collect();
-        let len = matches.len();
-        return String::from(matches[len - 1]);
-    }
-    String::from("")
+fn md5crate(message: &str) -> String {
+    let mut hash = Md5::new();
+    hash.input_str(message);
+    let result = hash.result_str();
+    result
 }
 
 fn md5(message: &str) {
@@ -144,7 +157,7 @@ fn md5(message: &str) {
             let temp = b;
             c = temp;
             println!("{}", leftrotate(F, s[i] as usize));
-            b = (temp + leftrotate(F, s[i] as usize));
+            b = temp + leftrotate(F, s[i] as usize);
         }
     }
 }
@@ -156,6 +169,24 @@ mod md5 {
     #[test]
     fn example_1() {
         let result = part_1(&"abcdef");
-        println!("{}", result);
+        assert_eq!(result, 609043);
+    }
+
+    #[test]
+    fn example_2() {
+        let result = part_1(&"pqrstuv");
+        assert_eq!(result, 1048970);
+    }
+
+    #[test]
+    fn day_4_part_1() {
+        let result = part_1(&"bgvyzdsv");
+        assert_eq!(result, 254575);
+    }
+
+    #[test]
+    fn day_4_part_2() {
+        let result = part_2(&"bgvyzdsv");
+        assert_eq!(result, 1038736);
     }
 }
